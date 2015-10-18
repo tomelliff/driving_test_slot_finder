@@ -2,10 +2,15 @@
 
 # Looks for driving test slots for a given time period
 
+import ConfigParser
+
 import requests
 
-a='TEST'
-b='123456'
+config = ConfigParser.RawConfigParser()
+config.read('properties.cfg')
+
+driving_licence_num = config.get('credentials', 'driving_licence_number')
+application_ref_num = config.get('credentials', 'application_reference_number')
 
 def create_session():
   
@@ -48,7 +53,7 @@ def login(session, driving_licence_num, application_ref_num):
 #cookies = create_session().cookies
 
 session = create_session()
-login = login(session,a,b)
+login = login(session, driving_licence_num, application_ref_num)
 
 print(login.text)
 print('')
