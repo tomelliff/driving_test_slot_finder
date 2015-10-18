@@ -3,6 +3,7 @@
 # Looks for driving test slots for a given time period
 
 import ConfigParser
+import re
 
 import requests
 
@@ -54,7 +55,11 @@ def login(session, driving_licence_num, application_ref_num):
 
 session = create_session()
 login = login(session, driving_licence_num, application_ref_num)
+csrf_search = re.search('csrftoken=(.*)&amp', login.text)
 
 print(login.text)
 print('')
 print(session.cookies)
+if csrf_search is not None:
+  csrf = csrf_search.group(1)
+  print(csrf)
