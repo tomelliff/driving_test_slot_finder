@@ -15,29 +15,31 @@ config.read('properties.cfg')
 driving_licence_num = config.get('credentials', 'driving_licence_number')
 application_ref_num = config.get('credentials', 'application_reference_number')
 
-def create_session():
+portal_login_url = config.get('urls','driving_test_portal.login')
+
+def create_session(url):
   
   # Creates a session to be used throughout
   # Returns session object and boolean capctcha_present
 
-  login_url = 'https://driverpracticaltest.direct.gov.uk/login'
+  login_url = url
   
   s = requests.Session()
 
   r = s.get(login_url)
 
   captcha_present = check_for_captcha(r.text)
-  
+
   return s, captcha_present
 
-def login(session, driving_licence_num, application_ref_num):
+def login(session, url, driving_licence_num, application_ref_num):
 
   # Logs in to the driving test management portal with provided credentials
   # Returns request object
 
   s = session
 
-  login_url = 'https://driverpracticaltest.direct.gov.uk/login'
+  login_url = url
   login_details = {
     'username': driving_licence_num,
     'password': application_ref_num
@@ -49,6 +51,7 @@ def login(session, driving_licence_num, application_ref_num):
     'booking-login': 'Continue'
   }
 
+  # Combine both dicts
   form_data = login_details.copy()
   form_data.update(other_form_data)
 
@@ -74,11 +77,11 @@ def check_for_captcha(html):
 
 ### Use functions
 
-session, captcha_present = create_session()
+session, captcha_present = create_session(portal_login_url)
 
 # Only login if captcha not present on login page
 if not captcha_present:
-  login = login(session, driving_licence_num, application_ref_num)
+  login = login(session, portal_login_url, driving_licence_num, application_ref_num)
   print(login.text)
   csrf_search = re.search('csrftoken=(.*)&amp', login.text)
   if csrf_search is not None:
