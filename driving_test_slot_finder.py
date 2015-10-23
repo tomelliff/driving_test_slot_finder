@@ -30,7 +30,7 @@ def create_session(url):
 
   captcha_present = check_for_captcha(r.text)
 
-  return s, captcha_present
+  return s, captcha_present, r.status_code == requests.codes.ok
 
 def login(session, url, driving_licence_num, application_ref_num):
 
@@ -77,18 +77,20 @@ def check_for_captcha(html):
 
 ### Use functions
 
-session, captcha_present = create_session(portal_login_url)
+session, captcha_present, good_status = create_session(portal_login_url)
 
-# Only login if captcha not present on login page
-if not captcha_present:
-  login = login(session, portal_login_url, driving_licence_num, application_ref_num)
-  print(login.text)
-  csrf_search = re.search('csrftoken=(.*)&amp', login.text)
-  if csrf_search is not None:
-    csrf = csrf_search.group(1)
-    print(csrf)
+# Check original request is good in case of maintenance window
+if good_status:
+  # Only login if captcha not present on login page
+  if not captcha_present:
+    login = login(session, portal_login_url, driving_licence_num, application_ref_num)
+    print(login.text)
+    csrf_search = re.search('csrftoken=(.*)&amp', login.text)
+    if csrf_search is not None:
+      csrf = csrf_search.group(1)
+      print(csrf)
+    else:
+      print('CSRF token not found')
   else:
-    print('CSRF token not found')
-else:
-  print('Captcha challenge detected, exiting')
-  sys.exit(1)
+    print('Captcha challenge detected, exiting')
+    sys.exit(1)
