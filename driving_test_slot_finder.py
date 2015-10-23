@@ -15,14 +15,14 @@ config.read('properties.cfg')
 driving_licence_num = config.get('credentials', 'driving_licence_number')
 application_ref_num = config.get('credentials', 'application_reference_number')
 
-portal_login_url = config.get('urls','driving_test_portal.login')
+portal_url = config.get('urls','driving_test_portal.base')
 
-def create_session(url):
+def create_session(base_url):
   
   # Creates a session to be used throughout
   # Returns session object and boolean capctcha_present
 
-  login_url = url
+  login_url = base_url + 'login'
   
   s = requests.Session()
 
@@ -32,14 +32,14 @@ def create_session(url):
 
   return s, captcha_present, r.status_code == requests.codes.ok
 
-def login(session, url, driving_licence_num, application_ref_num):
+def login(session, base_url, driving_licence_num, application_ref_num):
 
   # Logs in to the driving test management portal with provided credentials
   # Returns request object
 
   s = session
 
-  login_url = url
+  login_url = base_url + 'login'
   login_details = {
     'username': driving_licence_num,
     'password': application_ref_num
@@ -74,21 +74,39 @@ def check_for_captcha(html):
 
   return captcha
 
+def change_date(session, base_url, csrf_token):
+
+  # Changes date of test
+
+  change_date_endpoint = 'manage'
+  
+  parameters = {
+                'csrftoken': csrf_token,
+                '_eventId': 'editTestDateTime',
+                'execution': 'e1s1'
+               }            
+ 
+  url = base_url + change_date_endpoint
+
+  r = session.post(url, params=parameters)
+
+  return r
 
 ### Use functions
 
-session, captcha_present, good_status = create_session(portal_login_url)
+session, captcha_present, good_status = create_session(portal_url)
 
 # Check original request is good in case of maintenance window
 if good_status:
   # Only login if captcha not present on login page
   if not captcha_present:
-    login = login(session, portal_login_url, driving_licence_num, application_ref_num)
-    print(login.text)
+    login = login(session, portal_url, driving_licence_num, application_ref_num)
     csrf_search = re.search('csrftoken=(.*)&amp', login.text)
     if csrf_search is not None:
       csrf = csrf_search.group(1)
-      print(csrf)
+      print('CSRF token: {0}'.format(csrf))
+      change_date = change_date(session, portal_url, csrf)
+      print(change_date.text)
     else:
       print('CSRF token not found')
   else:
