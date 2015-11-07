@@ -7,6 +7,7 @@ import re
 import sys
 
 from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 import requests
 
 config = ConfigParser.RawConfigParser()
@@ -24,7 +25,13 @@ def create_session(base_url):
 
   login_url = base_url + 'login'
   
+  headers = {
+             'User-agent': UserAgent().chrome
+            }
+
   s = requests.Session()
+
+  s.headers.update(headers)
 
   r = s.get(login_url)
 
@@ -92,6 +99,30 @@ def change_date(session, base_url, csrf_token):
 
   return r
 
+def list_earliest_dates(session, base_url, csrf_token):
+
+  # Selects the option for earliest dates possible
+
+  change_date_endpoint = 'manage'
+
+  parameters = {
+                'csrf_token': csrf_token,
+                '_eventId': 'proceed',
+                'execution': 'e1s2'
+               }
+
+  form_data = {
+               'testChoice': 'ASAP',
+               'preferredTestDate': '',
+               'drivingLicenceSubmit': 'Find available dates'
+              }
+
+  url = base_url + change_date_endpoint
+
+  r = session.post(url, params=parameters, data=form_data)
+
+  return r
+
 ### Use functions
 
 session, captcha_present, good_status = create_session(portal_url)
@@ -106,7 +137,8 @@ if good_status:
       csrf = csrf_search.group(1)
       print('CSRF token: {0}'.format(csrf))
       change_date = change_date(session, portal_url, csrf)
-      print(change_date.text)
+      dates = list_earliest_dates(session, portal_url, csrf)
+      print(dates.text)
     else:
       print('CSRF token not found')
   else:
